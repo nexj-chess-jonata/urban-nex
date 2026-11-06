@@ -1,4 +1,4 @@
-const CACHE = "urban-nex-v1";
+const CACHE = "urban-nex-v2";
 const FILES = ["./", "index.html", "style.css", "util.js", "store.js", "game.js", "app.js", "manifest.webmanifest",
   "icon-192.png", "icon-512.png", "maskable-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

@@ -17,18 +17,26 @@
 
   async function open() {
     idb = await openIdb();
-    let txt = idb ? await idbGet() : null;
-    if (!txt) { try { txt = localStorage.getItem(LS); } catch (_) {} }
-    if (txt) { try { const d = JSON.parse(txt); if (d && d.users) data = d; } catch (_) {} }
+    // duas cópias (IndexedDB e localStorage): vale a mais recente
+    let best = null;
+    const tryTxt = txt => { if (!txt) return; try { const d = JSON.parse(txt); if (d && d.users && (!best || (d.t || 0) >= (best.t || 0))) best = d; } catch (_) {} };
+    tryTxt(idb ? await idbGet() : null);
+    try { tryTxt(localStorage.getItem(LS)); } catch (_) {}
+    if (best) data = best;
     return data;
   }
   async function flush() {
     clearTimeout(timer); timer = null;
+    data.t = data.t || Date.now();
     const txt = JSON.stringify(data);
     let ok = idb ? await idbPut(txt) : false;
-    if (!ok) { try { localStorage.setItem(LS, txt); } catch (_) {} }
+    try { localStorage.setItem(LS, txt); } catch (_) {}
   }
-  function save() { clearTimeout(timer); timer = setTimeout(flush, 200); }
+  function save() {
+    clearTimeout(timer); data.t = Date.now();
+    try { localStorage.setItem(LS, JSON.stringify(data)); } catch (_) {}     // cópia imediata, não perde nada se o app fechar
+    timer = setTimeout(flush, 200);
+  }
   if (typeof addEventListener === "function") {
     addEventListener("pagehide", () => flush());
     addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
